@@ -342,15 +342,75 @@ def meta_analysis_node(state: AgentState) -> Dict[str, Any]:
         ]
     }
 
+def prepare_short_doc_node(state: AgentState) -> Dict[str, Any]:
+    """LangGraph node to prepare short documents by merging raw chunks directly."""
+    import time
+    from app.db.repositories import create_summary_step
+
+    update_job_progress("indexed")
+    t_start = time.perf_counter()
+    
+    document_id = state.get("document_id")
+    chunks = state["chunks"]
+    
+    timeline = list(state.get("steps_timeline", []))
+    
+    # Merge all chunk contents directly into synthesized_markdown
+    merged_text = "\n\n".join([c["content"] for c in chunks])
+    
+    status_msg = "Bypassed chunk extraction/synthesis (Short Doc)"
+    duration = time.perf_counter() - t_start
+    
+    if document_id:
+        create_summary_step(
+            document_id,
+            "Step 1 & 2: Bypass (Short Doc)",
+            status_msg,
+            duration
+        )
+        
+    return {
+        "synthesized_markdown": merged_text,
+        "steps_timeline": timeline + [
+            {"step": "Step 1 & 2: Bypass (Short Doc)", "model": "N/A", "status": "Completed"}
+        ]
+    }
+
+def route_by_document_size(state: AgentState) -> str:
+    """Conditional router function based on character length of the document chunks."""
+    total_length = sum(len(c["content"]) for c in state["chunks"])
+    # If the total document text is under 4000 characters (~600-800 words), route to the bypass node.
+    if total_length < 4000:
+        logger.info(f"Routing short document ({total_length} chars) to bypass path.")
+        return "short"
+    logger.info(f"Routing document ({total_length} chars) to standard multi-stage pipeline.")
+    return "long"
+
 # Build and compile the state graph
 builder = StateGraph(AgentState)
 builder.add_node("extract_chunks", extract_chunks_node)
 builder.add_node("synthesize_highlights", synthesize_highlights_node)
+builder.add_node("prepare_short_doc", prepare_short_doc_node)
 builder.add_node("meta_analysis", meta_analysis_node)
 
-builder.add_edge(START, "extract_chunks")
+# START router selection
+builder.add_conditional_edges(
+    START,
+    route_by_document_size,
+    {
+        "short": "prepare_short_doc",
+        "long": "extract_chunks"
+    }
+)
+
+# Standard long path
 builder.add_edge("extract_chunks", "synthesize_highlights")
 builder.add_edge("synthesize_highlights", "meta_analysis")
+
+# Short path
+builder.add_edge("prepare_short_doc", "meta_analysis")
+
+# End path
 builder.add_edge("meta_analysis", END)
 
 summarizer_graph = builder.compile()
