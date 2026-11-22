@@ -2,7 +2,6 @@ import os
 import sys
 from rq import Connection, Worker
 
-# Ensure the root directory is in the path so python can find the 'app' module
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from app.config import logger
@@ -16,10 +15,8 @@ def start_worker():
     logger.info("Initializing Redis Queue (RQ) background task worker listening on 'default' queue...")
     
     try:
-        # Establish connection context and run the worker
         with Connection(redis_client):
             worker = Worker(['default'])
-            # Start processing jobs (runs blocking loop)
             worker.work(logging_level='INFO')
     except Exception as e:
         logger.critical(f"Redis Queue worker encountered a fatal error: {str(e)}")
