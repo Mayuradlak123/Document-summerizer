@@ -6,10 +6,24 @@ from typing import List, Dict, Any
 # Ensure project root is in the path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from mcp.server.fastmcp import FastMCP
-
-# Initialize FastMCP Server
-mcp = FastMCP("Doc-Summarizer-Agent")
+try:
+    from mcp.server.fastmcp import FastMCP
+    # Initialize FastMCP Server
+    mcp = FastMCP("Doc-Summarizer-Agent")
+except Exception as e:
+    from app.config import logger
+    logger.warning(f"FastMCP unavailable ({str(e)}). Initializing fallback dummy MCP server.")
+    class DummyMCP:
+        def tool(self, *args, **kwargs):
+            def decorator(fn):
+                return fn
+            return decorator
+        def sse_app(self):
+            from fastapi import FastAPI
+            return FastAPI()
+        def run(self):
+            pass
+    mcp = DummyMCP()
 
 @mcp.tool()
 def list_documents() -> List[Dict[str, Any]]:
