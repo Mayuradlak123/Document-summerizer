@@ -52,6 +52,12 @@ class Settings:
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
     POSTGRES_URL: str = os.getenv("POSTGRES_URL", "")
+
+    # Storage Config (Serverless fallback to /tmp/storage if root filesystem is read-only)
+    STORAGE_DIR: str = os.getenv(
+        "STORAGE_DIR",
+        "/tmp/storage" if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")) else "storage"
+    )
     
     @property
     def is_groq_available(self) -> bool:
