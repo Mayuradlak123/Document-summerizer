@@ -29,14 +29,7 @@ async def summarize_document(file: UploadFile = File(...)):
         logger.error(f"Error reading file stream: {str(e)}")
         raise HTTPException(status_code=400, detail="Could not read uploaded file content.")
         
-    # Strict validation of file size (1MB max)
     file_size_bytes = len(file_bytes)
-    if file_size_bytes > 1024 * 1024:
-        logger.warning(f"File {filename} size of {file_size_bytes} bytes exceeds the 1MB limit.")
-        raise HTTPException(
-            status_code=400, 
-            detail="File size exceeds the 1 MB limit. Please upload a smaller document."
-        )
         
     # Generate unique document ID
     document_id = str(uuid.uuid4())

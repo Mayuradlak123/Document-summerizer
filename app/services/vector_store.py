@@ -38,19 +38,43 @@ def get_shared_embedding_fn():
         _embedding_fn = get_embedding_fn()
     return _embedding_fn
 
+def _is_ef_conflict(err: Exception) -> bool:
+    """True when Chroma rejects our embedding function because the persisted
+    collection was created with a different one."""
+    msg = str(err).lower()
+    return "embedding function" in msg and ("already exists" in msg or "conflict" in msg)
+
+
 class VectorStoreService:
     def __init__(self):
         self.client = chroma_client
         self._cache_collection = None
 
+    def _open_collection(self, name: str, create: bool = True):
+        """Opens a collection with our embedding function, falling back to the
+        collection's own persisted embedding function on conflict.
+
+        Collections created by an older build (or by the Chroma Cloud default)
+        carry their own embedding function; passing a new one raises. Reusing the
+        persisted one keeps queries consistent with the vectors already stored.
+        """
+        getter = self.client.get_or_create_collection if create else self.client.get_collection
+        try:
+            return getter(name=name, embedding_function=get_shared_embedding_fn())
+        except Exception as e:
+            if not _is_ef_conflict(e):
+                raise
+            logger.warning(
+                f"Collection '{name}' was created with a different embedding function. "
+                f"Reusing the persisted one so queries stay consistent with stored vectors."
+            )
+            return getter(name=name)
+
     @property
     def cache_collection(self):
         if self._cache_collection is None and self.client:
             try:
-                self._cache_collection = self.client.get_or_create_collection(
-                    name="semantic_cache",
-                    embedding_function=get_shared_embedding_fn()
-                )
+                self._cache_collection = self._open_collection("semantic_cache")
                 logger.info("Semantic cache collection 'semantic_cache' initialized in ChromaDB.")
             except Exception as e:
                 logger.error(f"Failed to initialize semantic cache collection: {str(e)}")
@@ -153,10 +177,7 @@ class VectorStoreService:
             clean_id = document_id.replace("-", "_")
             collection_name = f"doc_{clean_id}"
             
-            collection = self.client.get_collection(
-                name=collection_name,
-                embedding_function=get_shared_embedding_fn()
-            )
+            collection = self._open_collection(collection_name, create=False)
             
             count = collection.count()
             if count == 0:

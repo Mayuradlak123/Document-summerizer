@@ -24,9 +24,9 @@ else:
     logger.warning("GROQ_API_KEY is not configured. Running summarizer in Mock Mode.")
 
 # Models configuration
-MODEL_STEP_1 = "llama-3.1-8b-instant"
-MODEL_STEP_2 = "llama-3.3-70b-versatile"
-MODEL_STEP_3 = "llama-3.1-8b-instant"
+MODEL_STEP_1 = settings.GROQ_MODEL_FAST
+MODEL_STEP_2 = settings.GROQ_MODEL_HEAVY
+MODEL_STEP_3 = settings.GROQ_MODEL_JSON
 
 # Mock summary data for testing without API keys
 MOCK_SUMMARY_DATA = {

@@ -5,10 +5,6 @@ from pypdf import PdfReader
 import docx
 from app.config import logger
 
-MAX_FILE_SIZE = 1 * 1024 * 1024  # 1MB in bytes
-
-def validate_file_size(file_bytes: bytes) -> bool:
-    return len(file_bytes) <= MAX_FILE_SIZE
 
 def ocr_pdf_via_vision(file_bytes: bytes) -> str:
     """
@@ -20,6 +16,13 @@ def ocr_pdf_via_vision(file_bytes: bytes) -> str:
     
     if not settings.is_groq_available:
         logger.warning("GROQ_API_KEY is not configured. Cannot perform Vision OCR for scanned PDF.")
+        return ""
+
+    if not settings.GROQ_MODEL_VISION:
+        logger.warning(
+            "GROQ_MODEL_VISION is not set. Skipping Vision OCR for this scanned PDF. "
+            "Set it to a multimodal model your Groq key can access to enable OCR."
+        )
         return ""
         
     try:
@@ -64,7 +67,7 @@ def ocr_pdf_via_vision(file_bytes: bytes) -> str:
                                 ]
                             }
                         ],
-                        model="meta-llama/llama-4-scout-17b-16e-instruct",
+                        model=settings.GROQ_MODEL_VISION,
                         temperature=0.1
                     )
                     ocr_text = chat_completion.choices[0].message.content.strip()
@@ -127,9 +130,6 @@ def parse_txt(file_bytes: bytes) -> str:
         raise ValueError(f"Failed to parse TXT document: {str(e)}")
 
 def extract_text(file_bytes: bytes, filename: str) -> str:
-    if not validate_file_size(file_bytes):
-        raise ValueError(f"File size of {len(file_bytes)} bytes exceeds the maximum limit of 1 MB.")
-        
     ext = os.path.splitext(filename)[1].lower()
     logger.info(f"Extracting text from file: {filename} (extension: {ext})")
     

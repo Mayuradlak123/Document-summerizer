@@ -63,7 +63,7 @@ def answer_question_node(state: ChatAgentState) -> Dict[str, Any]:
                 
             def call_groq():
                 completion = groq_client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
+                    model=settings.GROQ_MODEL_FAST,
                     messages=messages,
                     temperature=0.3
                 )

@@ -13,6 +13,14 @@ class Settings:
     
     # Groq API Configuration
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+
+    # Groq model IDs. Groq retires models regularly, so these are env-overridable.
+    # Run `curl -H "Authorization: Bearer $GROQ_API_KEY" https://api.groq.com/openai/v1/models`
+    # to see what the current key actually has access to.
+    GROQ_MODEL_FAST: str = os.getenv("GROQ_MODEL_FAST", "openai/gpt-oss-20b")
+    GROQ_MODEL_HEAVY: str = os.getenv("GROQ_MODEL_HEAVY", "openai/gpt-oss-120b")
+    GROQ_MODEL_JSON: str = os.getenv("GROQ_MODEL_JSON", "openai/gpt-oss-120b")
+    GROQ_MODEL_VISION: str = os.getenv("GROQ_MODEL_VISION", "")
     
     # LangSmith Configuration
     LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY", "")
