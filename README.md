@@ -1,4 +1,4 @@
-# Multi-Model Document Summarizer Agent System
+# Multi-Model Document Summarizer Agent System 
 
 A resilient, premium web application built with **FastAPI**, **Jinja2 + Tailwind CSS**, **Redis Queue (RQ)**, **ChromaDB**, and **LangGraph**. The application processes documents up to 1MB asynchronously, extracts semantic highlights, caches results vectorially, and opens an interactive, stateful RAG Chat Agent to query the document content.
 
